@@ -1,0 +1,173 @@
+<!-- placement-predictor/static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Placement Predictor</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 350px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    input:focus {
+      border-color: #4f46e5;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #4338ca;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .placed {
+      background: #e6fffa;
+      color: #065f46;
+    }
+
+    .not-placed {
+      background: #ffe4e6;
+      color: #7f1d1d;
+    }
+
+    .error {
+      margin-top: 15px;
+      color: red;
+      font-size: 13px;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>Placement Predictor</h2>
+  <p>Enter your CGPA and IQ to check placement chances.</p>
+
+  <input type="number" id="cgpa" placeholder="CGPA (0 - 10)" />
+  <input type="number" id="iq" placeholder="IQ (50 - 250)" />
+
+  <button onclick="predict()">Predict</button>
+
+  <div class="error" id="error"></div>
+
+  <div class="result" id="result">
+    <h3 id="verdict"></h3>
+    <p id="prob"></p>
+  </div>
+</div>
+
+<script>
+  const API_URL = "http://127.0.0.1:5000/predict";
+
+  async function predict() {
+    const cgpa = parseFloat(document.getElementById("cgpa").value);
+    const iq   = parseFloat(document.getElementById("iq").value);
+
+    const errorBox = document.getElementById("error");
+    const resultBox = document.getElementById("result");
+
+    errorBox.style.display = "none";
+    resultBox.style.display = "none";
+
+    // Validation
+    if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) {
+      errorBox.innerText = "Enter valid CGPA (0–10)";
+      errorBox.style.display = "block";
+      return;
+    }
+
+    if (isNaN(iq) || iq < 50 || iq > 250) {
+      errorBox.innerText = "Enter valid IQ (50–250)";
+      errorBox.style.display = "block";
+      return;
+    }
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ cgpa, iq })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        errorBox.innerText = data.error || "Server error";
+        errorBox.style.display = "block";
+        return;
+      }
+
+      // Show result
+      resultBox.style.display = "block";
+      resultBox.className = "result " + (data.placement ? "placed" : "not-placed");
+
+      document.getElementById("verdict").innerText =
+        data.result;
+
+      document.getElementById("prob").innerText =
+        "Probability: " + data.probability + "%";
+
+    } catch (err) {
+      errorBox.innerText = "Cannot connect to server. Run Flask app.";
+      errorBox.style.display = "block";
+    }
+  }
+</script>
+
+</body>
+</html>
